@@ -53,6 +53,32 @@ export function createUrlNormalizer(ignoreQueryParams: boolean) {
   };
 }
 
+const NON_HTML_EXTENSIONS = new Set([
+  // Images
+  '.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg', '.ico', '.bmp', '.avif', '.tiff',
+  // Documents
+  '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx', '.odt', '.ods', '.odp',
+  // Archives
+  '.zip', '.tar', '.gz', '.bz2', '.rar', '.7z', '.dmg', '.pkg', '.apk', '.exe',
+  // Media
+  '.mp3', '.mp4', '.avi', '.mov', '.wmv', '.flv', '.wav', '.ogg', '.webm', '.m4a', '.m4v',
+  // Fonts
+  '.woff', '.woff2', '.ttf', '.otf', '.eot',
+  // Code / data (not HTML)
+  '.js', '.css', '.json', '.xml', '.csv', '.txt', '.map',
+]);
+
+export function isNonHtmlUrl(url: string): boolean {
+  try {
+    const pathname = new URL(url).pathname.toLowerCase();
+    const dot = pathname.lastIndexOf('.');
+    if (dot === -1) return false;
+    return NON_HTML_EXTENSIONS.has(pathname.slice(dot));
+  } catch {
+    return false;
+  }
+}
+
 export function getRegisteredDomain(hostname: string): string | null {
   return getDomain(hostname) ?? null;
 }

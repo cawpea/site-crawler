@@ -3,7 +3,7 @@ import { writeFile, rename, readFile, mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import pLimit from 'p-limit';
 import type { CrawlerOptions, IFetcher, PageResult, QueueEntry, CheckpointData } from './types.js';
-import { createUrlNormalizer, isSameDomain } from './urlUtils.js';
+import { createUrlNormalizer, isSameDomain, isNonHtmlUrl } from './urlUtils.js';
 import { parseHtml } from './parser.js';
 import { createRobotsChecker } from './robotsChecker.js';
 
@@ -157,6 +157,7 @@ export class Crawler {
         for (const link of links) {
           if (this.visited.has(link)) continue;
           if (!isSameDomain(link, this.options.startUrl)) continue;
+          if (isNonHtmlUrl(link)) continue;
           if (this.options.depth !== null && entry.depth + 1 > this.options.depth) continue;
           this.queue.push({ url: link, depth: entry.depth + 1 });
         }
