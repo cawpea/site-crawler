@@ -29,6 +29,7 @@ export interface CrawlerOptions {
   checkpoint: string | null;
   playwright: boolean;
   ignoreSslErrors: boolean;
+  outputDir: string | null;
 }
 
 export interface FetchResult {

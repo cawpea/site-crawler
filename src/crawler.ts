@@ -1,5 +1,6 @@
 import { createWriteStream, type WriteStream } from 'node:fs';
-import { writeFile, rename, readFile } from 'node:fs/promises';
+import { writeFile, rename, readFile, mkdir } from 'node:fs/promises';
+import { join } from 'node:path';
 import pLimit from 'p-limit';
 import type { CrawlerOptions, IFetcher, PageResult, QueueEntry, CheckpointData } from './types.js';
 import { createUrlNormalizer, isSameDomain } from './urlUtils.js';
@@ -31,7 +32,7 @@ export class Crawler {
   async run(fetcher: IFetcher): Promise<void> {
     this.fetcher = fetcher;
     this.setupShutdown();
-    this.setupOutputStream();
+    await this.setupOutputStream();
 
     if (this.options.format === 'json') {
       this.write('[\n');
@@ -50,10 +51,26 @@ export class Crawler {
     await this.fetcher.destroy?.();
   }
 
-  private setupOutputStream(): void {
-    if (this.options.output) {
-      this.fileStream = createWriteStream(this.options.output, { encoding: 'utf8' });
+  private resolveOutputPath(): string | null {
+    if (this.options.output) return this.options.output;
+    if (this.options.outputDir) {
+      const hostname = new URL(this.options.startUrl).hostname.replace(/[^a-zA-Z0-9.-]/g, '_');
+      const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+      const ext = this.options.format === 'json' ? 'json' : 'ndjson';
+      return join(this.options.outputDir, `${hostname}_${ts}.${ext}`);
+    }
+    return null;
+  }
+
+  private async setupOutputStream(): Promise<void> {
+    const outputPath = this.resolveOutputPath();
+    if (outputPath) {
+      if (this.options.outputDir) {
+        await mkdir(this.options.outputDir, { recursive: true });
+      }
+      this.fileStream = createWriteStream(outputPath, { encoding: 'utf8' });
       this.outputStream = this.fileStream;
+      process.stderr.write(`Output: ${outputPath}\n`);
     } else {
       this.outputStream = process.stdout;
     }

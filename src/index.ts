@@ -21,6 +21,7 @@ program
   .option('--format <type>', 'Output format: json or ndjson', 'ndjson')
   .option('--checkpoint <file>', 'Checkpoint file path for resume support')
   .option('--playwright', 'Use Playwright for JS-rendered pages', false)
+  .option('--output-dir <dir>', 'Output directory (saves as {hostname}_{timestamp}.json[l])')
   .option('--ignore-ssl-errors', 'Skip TLS certificate verification (useful for sites with untrusted certs)', false)
   .action(async (url: string, opts) => {
     const format = opts.format as string;
@@ -43,6 +44,7 @@ program
       checkpoint: (opts.checkpoint as string | undefined) ?? null,
       playwright: opts.playwright as boolean,
       ignoreSslErrors: opts.ignoreSslErrors as boolean,
+      outputDir: (opts.outputDir as string | undefined) ?? null,
     };
 
     let fetcher: IFetcher;
