@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { createWriteStream, type WriteStream } from 'node:fs';
 import { writeFile, rename, readFile, mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -23,6 +24,7 @@ export class Crawler {
   private normalizeUrl: ReturnType<typeof createUrlNormalizer>;
   private robotsChecker: ReturnType<typeof createRobotsChecker>;
   private fetcher!: IFetcher;
+  private contentHashes = new Set<string>();
 
   constructor(private options: CrawlerOptions) {
     this.normalizeUrl = createUrlNormalizer(options.ignoreQueryParams);
@@ -147,6 +149,15 @@ export class Crawler {
     let metaDescription: string | null = null;
 
     if (fetchResult.html) {
+      if (this.options.dedupeContent) {
+        const hash = createHash('sha256').update(fetchResult.html).digest('hex');
+        if (this.contentHashes.has(hash)) {
+          process.stderr.write(`[dedupe] Skipping duplicate content: ${fetchResult.url}\n`);
+          return;
+        }
+        this.contentHashes.add(hash);
+      }
+
       const parsed = parseHtml(fetchResult.html, fetchResult.url, this.normalizeUrl);
       title = parsed.title;
       metaDescription = parsed.metaDescription;

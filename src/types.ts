@@ -30,6 +30,7 @@ export interface CrawlerOptions {
   playwright: boolean;
   ignoreSslErrors: boolean;
   outputDir: string | null;
+  dedupeContent: boolean;
 }
 
 export interface FetchResult {

@@ -22,6 +22,7 @@ program
   .option('--checkpoint <file>', 'Checkpoint file path for resume support')
   .option('--playwright', 'Use Playwright for JS-rendered pages', false)
   .option('--output-dir <dir>', 'Output directory (saves as {hostname}_{timestamp}.json[l])')
+  .option('--dedupe-content', 'Skip pages with duplicate HTML content (SHA-256 hash comparison)', false)
   .option('--ignore-ssl-errors', 'Skip TLS certificate verification (useful for sites with untrusted certs)', false)
   .action(async (url: string, opts) => {
     const format = opts.format as string;
@@ -45,6 +46,7 @@ program
       playwright: opts.playwright as boolean,
       ignoreSslErrors: opts.ignoreSslErrors as boolean,
       outputDir: (opts.outputDir as string | undefined) ?? null,
+      dedupeContent: opts.dedupeContent as boolean,
     };
 
     let fetcher: IFetcher;
