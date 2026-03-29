@@ -1,0 +1,29 @@
+{
+  "name": "site-crawler",
+  "version": "1.0.0",
+  "description": "Web crawler CLI tool",
+  "type": "module",
+  "bin": {
+    "crawl": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/index.ts",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "cheerio": "^1.0.0",
+    "commander": "^12.0.0",
+    "p-limit": "^6.0.0",
+    "robots-parser": "^3.0.0",
+    "tldts": "^6.0.0",
+    "undici": "^6.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "playwright": "^1.40.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.0.0"
+  }
+}
