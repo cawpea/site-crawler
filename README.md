@@ -42,7 +42,7 @@ node dist/index.js https://example.com --output-dir ./output
 | `--depth <n>` | 無制限 | 最大クロール深度。`0` は起点 URL のみ、`1` は起点から 1 リンク先まで |
 | `--output <file>` | stdout | 出力先ファイルパス |
 | `--output-dir <dir>` | — | 出力先ディレクトリ。`{ホスト名}_{タイムスタンプ}.{ndjson\|json}` の形式で自動保存。ディレクトリが存在しない場合は自動作成 |
-| `--format <type>` | `ndjson` | 出力形式。`ndjson`（1 行 1 ページ、逐次書き込み）または `json`（全件完了後に JSON 配列として出力） |
+| `--format <type>` | `ndjson` | 出力形式。`ndjson`（1 行 1 ページ、逐次書き込み）、`json`（全件完了後に JSON 配列として出力）、`csv`（ヘッダー付き CSV、`links` は件数として出力） |
 | `--ignore-robots` | `false` | robots.txt を無視してクロール |
 | `--ignore-query-params` | `false` | クエリパラメータを除去して URL を正規化。`/page?a=1` と `/page?a=2` を同一 URL とみなす |
 | `--ignore-ssl-errors` | `false` | TLS 証明書の検証をスキップ。自己署名証明書や中間証明書が不完全なサイトで使用 |
@@ -59,6 +59,16 @@ node dist/index.js https://example.com --output-dir ./output
 ```jsonl
 {"url":"https://example.com/","title":"Example","statusCode":200,"depth":0,"links":[...],...}
 {"url":"https://example.com/about","title":"About","statusCode":200,"depth":1,"links":[...],...}
+```
+
+### CSV（`--format csv`）
+
+ヘッダー行付きの CSV を出力。`links` は件数（`linkCount`）として記録される。
+
+```csv
+url,title,metaDescription,statusCode,crawledAt,depth,linkCount,error,redirectedFrom
+https://example.com/,Example Domain,,200,2026-03-30T00:00:00.000Z,0,1,,
+https://example.com/about,About,,200,2026-03-30T00:00:01.000Z,1,3,,
 ```
 
 ### JSON 配列（`--format json`）

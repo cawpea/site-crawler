@@ -10,6 +10,17 @@ import { createRobotsChecker } from './robotsChecker.js';
 
 const CHECKPOINT_INTERVAL = 100;
 
+const CSV_HEADER = 'url,title,metaDescription,statusCode,crawledAt,depth,linkCount,error,redirectedFrom';
+
+function csvCell(value: string | number | null | undefined): string {
+  if (value == null) return '';
+  const str = String(value);
+  if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+    return '"' + str.replaceAll('"', '""') + '"';
+  }
+  return str;
+}
+
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -38,6 +49,8 @@ export class Crawler {
 
     if (this.options.format === 'json') {
       this.write('[\n');
+    } else if (this.options.format === 'csv') {
+      this.write(CSV_HEADER + '\n');
     }
 
     await this.loadCheckpoint();
@@ -58,7 +71,9 @@ export class Crawler {
     if (this.options.outputDir) {
       const hostname = new URL(this.options.startUrl).hostname.replace(/[^a-zA-Z0-9.-]/g, '_');
       const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-      const ext = this.options.format === 'json' ? 'json' : 'ndjson';
+      const ext = this.options.format === 'json' ? 'json'
+               : this.options.format === 'csv'  ? 'csv'
+               : 'ndjson';
       return join(this.options.outputDir, `${hostname}_${ts}.${ext}`);
     }
     return null;
@@ -201,12 +216,25 @@ export class Crawler {
   }
 
   private writeResult(result: PageResult): void {
-    const line = JSON.stringify(result);
     if (this.options.format === 'ndjson') {
-      this.write(line + '\n');
-    } else {
+      this.write(JSON.stringify(result) + '\n');
+    } else if (this.options.format === 'json') {
       if (this.totalCrawled > 0) this.write(',\n');
-      this.write(line);
+      this.write(JSON.stringify(result));
+    } else {
+      // csv
+      const row = [
+        result.url,
+        result.title,
+        result.metaDescription,
+        result.statusCode,
+        result.crawledAt,
+        result.depth,
+        result.links.length,
+        result.error,
+        result.redirectedFrom,
+      ].map(csvCell).join(',');
+      this.write(row + '\n');
     }
   }
 

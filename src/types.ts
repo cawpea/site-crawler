@@ -25,7 +25,7 @@ export interface CrawlerOptions {
   ignoreRobots: boolean;
   depth: number | null;
   ignoreQueryParams: boolean;
-  format: 'json' | 'ndjson';
+  format: 'json' | 'ndjson' | 'csv';
   checkpoint: string | null;
   playwright: boolean;
   ignoreSslErrors: boolean;

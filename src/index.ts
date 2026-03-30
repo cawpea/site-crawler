@@ -18,7 +18,7 @@ program
   .option('--ignore-robots', 'Ignore robots.txt', false)
   .option('--depth <n>', 'Maximum crawl depth')
   .option('--ignore-query-params', 'Treat URLs with different query params as the same URL', false)
-  .option('--format <type>', 'Output format: json or ndjson', 'ndjson')
+  .option('--format <type>', 'Output format: json, ndjson, or csv', 'ndjson')
   .option('--checkpoint <file>', 'Checkpoint file path for resume support')
   .option('--playwright', 'Use Playwright for JS-rendered pages', false)
   .option('--output-dir <dir>', 'Output directory (saves as {hostname}_{timestamp}.json[l])')
@@ -26,8 +26,8 @@ program
   .option('--ignore-ssl-errors', 'Skip TLS certificate verification (useful for sites with untrusted certs)', false)
   .action(async (url: string, opts) => {
     const format = opts.format as string;
-    if (format !== 'json' && format !== 'ndjson') {
-      process.stderr.write(`Error: --format must be "json" or "ndjson", got "${format}"\n`);
+    if (format !== 'json' && format !== 'ndjson' && format !== 'csv') {
+      process.stderr.write(`Error: --format must be "json", "ndjson", or "csv", got "${format}"\n`);
       process.exit(1);
     }
 
