@@ -27,6 +27,7 @@ function sleep(ms: number): Promise<void> {
 
 export class Crawler {
   private queue: QueueEntry[] = [];
+  private queueHead = 0; // O(1) dequeue without Array.shift()
   private visited = new Set<string>();
   private totalCrawled = 0;
   private shuttingDown = false;
@@ -36,6 +37,30 @@ export class Crawler {
   private robotsChecker: ReturnType<typeof createRobotsChecker>;
   private fetcher!: IFetcher;
   private contentHashes = new Set<string>();
+
+  // Mark visited immediately on enqueue to prevent duplicates accumulating in queue.
+  // A URL that is linked by N pages would otherwise appear N times in the queue
+  // before any of them gets processed.
+  private tryEnqueue(url: string, depth: number): void {
+    if (this.visited.has(url)) return;
+    this.visited.add(url);
+    this.queue.push({ url, depth });
+  }
+
+  private dequeue(): QueueEntry | undefined {
+    if (this.queueHead >= this.queue.length) return undefined;
+    const entry = this.queue[this.queueHead++];
+    // Compact the backing array periodically to reclaim memory
+    if (this.queueHead > 10000) {
+      this.queue = this.queue.slice(this.queueHead);
+      this.queueHead = 0;
+    }
+    return entry;
+  }
+
+  private get queueSize(): number {
+    return this.queue.length - this.queueHead;
+  }
 
   constructor(private options: CrawlerOptions) {
     this.normalizeUrl = createUrlNormalizer(options.ignoreQueryParams);
@@ -56,9 +81,7 @@ export class Crawler {
     await this.loadCheckpoint();
 
     const normalizedStart = this.normalizeUrl(this.options.startUrl);
-    if (normalizedStart && !this.visited.has(normalizedStart)) {
-      this.queue.push({ url: normalizedStart, depth: 0 });
-    }
+    if (normalizedStart) this.tryEnqueue(normalizedStart, 0);
 
     await this.drain();
     await this.finalizeOutput();
@@ -101,7 +124,8 @@ export class Crawler {
     const handler = () => {
       process.stderr.write('\nReceived signal, finishing in-flight requests...\n');
       this.shuttingDown = true;
-      this.queue.length = 0;
+      this.queue = [];
+      this.queueHead = 0;
     };
     process.once('SIGINT', handler);
     process.once('SIGTERM', handler);
@@ -113,11 +137,11 @@ export class Crawler {
 
     const schedule = () => {
       while (
-        this.queue.length > 0 &&
+        this.queueSize > 0 &&
         !this.isAtPageLimit() &&
         !this.shuttingDown
       ) {
-        const entry = this.queue.shift()!;
+        const entry = this.dequeue()!;
         const p = limit(() => this.processEntry(entry)).then(() => {
           promises.delete(p);
           schedule();
@@ -142,10 +166,6 @@ export class Crawler {
   }
 
   private async processEntry(entry: QueueEntry): Promise<void> {
-    // Double-check visited (race condition guard)
-    if (this.visited.has(entry.url)) return;
-    this.visited.add(entry.url);
-
     if (this.options.delay > 0) {
       await sleep(this.options.delay);
     }
@@ -181,11 +201,10 @@ export class Crawler {
       // Enqueue new links
       if (!this.shuttingDown) {
         for (const link of links) {
-          if (this.visited.has(link)) continue;
           if (!isSameDomain(link, this.options.startUrl)) continue;
           if (isNonHtmlUrl(link)) continue;
           if (this.options.depth !== null && entry.depth + 1 > this.options.depth) continue;
-          this.queue.push({ url: link, depth: entry.depth + 1 });
+          this.tryEnqueue(link, entry.depth + 1); // visited check is inside tryEnqueue
         }
       }
     }
@@ -257,7 +276,7 @@ export class Crawler {
 
     const data: CheckpointData = {
       visitedUrls: Array.from(this.visited),
-      pendingQueue: [...this.queue],
+      pendingQueue: this.queue.slice(this.queueHead),
       crawledCount: this.totalCrawled,
       startUrl: this.options.startUrl,
       savedAt: new Date().toISOString(),
@@ -283,7 +302,9 @@ export class Crawler {
       for (const u of data.visitedUrls) {
         this.visited.add(u);
       }
-      this.queue.unshift(...data.pendingQueue);
+      // Prepend pending queue without spread (avoids call stack overflow on large arrays)
+      this.queue = [...data.pendingQueue, ...this.queue.slice(this.queueHead)];
+      this.queueHead = 0;
       this.totalCrawled = data.crawledCount;
 
       process.stderr.write(
