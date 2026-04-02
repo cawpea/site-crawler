@@ -31,6 +31,7 @@ export interface CrawlerOptions {
   ignoreSslErrors: boolean;
   outputDir: string | null;
   dedupeContent: boolean;
+  sitemapOnly: boolean;
 }
 
 export interface FetchResult {

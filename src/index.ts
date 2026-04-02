@@ -24,6 +24,7 @@ program
   .option('--output-dir <dir>', 'Output directory (saves as {hostname}_{timestamp}.json[l])')
   .option('--dedupe-content', 'Skip pages with duplicate HTML content (SHA-256 hash comparison)', false)
   .option('--ignore-ssl-errors', 'Skip TLS certificate verification (useful for sites with untrusted certs)', false)
+  .option('--sitemap-only', 'sitemap.xml に記載されたURLのみをクロールする（リンクを辿らない）', false)
   .action(async (url: string, opts) => {
     const format = opts.format as string;
     if (format !== 'json' && format !== 'ndjson' && format !== 'csv') {
@@ -47,6 +48,7 @@ program
       ignoreSslErrors: opts.ignoreSslErrors as boolean,
       outputDir: (opts.outputDir as string | undefined) ?? null,
       dedupeContent: opts.dedupeContent as boolean,
+      sitemapOnly: opts.sitemapOnly as boolean,
     };
 
     let fetcher: IFetcher;

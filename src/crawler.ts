@@ -7,6 +7,7 @@ import type { CrawlerOptions, IFetcher, PageResult, QueueEntry, CheckpointData }
 import { createUrlNormalizer, isSameDomain, isNonHtmlUrl } from './urlUtils.js';
 import { parseHtml } from './parser.js';
 import { createRobotsChecker } from './robotsChecker.js';
+import { fetchSitemapUrls } from './sitemapFetcher.js';
 
 const CHECKPOINT_INTERVAL = 100;
 
@@ -80,8 +81,19 @@ export class Crawler {
 
     await this.loadCheckpoint();
 
-    const normalizedStart = this.normalizeUrl(this.options.startUrl);
-    if (normalizedStart) this.tryEnqueue(normalizedStart, 0);
+    if (this.options.sitemapOnly) {
+      const sitemapUrls = await fetchSitemapUrls(this.options);
+      if (sitemapUrls.length === 0) {
+        process.stderr.write('[sitemap] No URLs found in sitemap.xml. Exiting.\n');
+        await this.finalizeOutput();
+        await this.fetcher.destroy?.();
+        return;
+      }
+      for (const u of sitemapUrls) this.tryEnqueue(u, 0);
+    } else {
+      const normalizedStart = this.normalizeUrl(this.options.startUrl);
+      if (normalizedStart) this.tryEnqueue(normalizedStart, 0);
+    }
 
     await this.drain();
     await this.finalizeOutput();
@@ -198,8 +210,8 @@ export class Crawler {
       metaDescription = parsed.metaDescription;
       links = parsed.links;
 
-      // Enqueue new links
-      if (!this.shuttingDown) {
+      // Enqueue new links (sitemapOnly モードではリンクを辿らない)
+      if (!this.shuttingDown && !this.options.sitemapOnly) {
         for (const link of links) {
           if (!isSameDomain(link, this.options.startUrl)) continue;
           if (isNonHtmlUrl(link)) continue;
