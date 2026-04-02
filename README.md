@@ -1,6 +1,6 @@
 # site-crawler
 
-指定した URL を起点に同一ドメインを再帰的にクロールし、ページ情報を NDJSON / JSON 形式で出力する CLI ツール。
+指定した URL を起点に同一ドメインを再帰的にクロールし、ページ情報を NDJSON / JSON / CSV 形式で出力する CLI ツール。
 
 ## インストール
 
@@ -27,8 +27,14 @@ node dist/index.js https://example.com --max-pages 100 --concurrency 5
 # ファイルに保存
 node dist/index.js https://example.com --output result.ndjson
 
+# CSV 形式で出力
+node dist/index.js https://example.com --format csv --output result.csv
+
 # output/ ディレクトリに自動命名で保存
 node dist/index.js https://example.com --output-dir ./output
+
+# TLS 証明書エラーが出るサイト
+node dist/index.js https://example.com --ignore-ssl-errors
 ```
 
 ## オプション
@@ -41,7 +47,7 @@ node dist/index.js https://example.com --output-dir ./output
 | `--timeout <ms>` | `10000` | 1 リクエストのタイムアウト（ミリ秒） |
 | `--depth <n>` | 無制限 | 最大クロール深度。`0` は起点 URL のみ、`1` は起点から 1 リンク先まで |
 | `--output <file>` | stdout | 出力先ファイルパス |
-| `--output-dir <dir>` | — | 出力先ディレクトリ。`{ホスト名}_{タイムスタンプ}.{ndjson\|json}` の形式で自動保存。ディレクトリが存在しない場合は自動作成 |
+| `--output-dir <dir>` | — | 出力先ディレクトリ。`{ホスト名}_{タイムスタンプ}.{ndjson\|json\|csv}` の形式で自動保存。ディレクトリが存在しない場合は自動作成 |
 | `--format <type>` | `ndjson` | 出力形式。`ndjson`（1 行 1 ページ、逐次書き込み）、`json`（全件完了後に JSON 配列として出力）、`csv`（ヘッダー付き CSV、`links` は件数として出力） |
 | `--ignore-robots` | `false` | robots.txt を無視してクロール |
 | `--ignore-query-params` | `false` | クエリパラメータを除去して URL を正規化。`/page?a=1` と `/page?a=2` を同一 URL とみなす |
@@ -133,7 +139,7 @@ node dist/index.js https://example.com --max-pages 1000 --checkpoint cp.json
 node dist/index.js https://example.com --max-pages 1000 --checkpoint cp.json
 ```
 
-## jq を使った出力の活用例
+## jq を使った出力の活用例（NDJSON / JSON）
 
 ```bash
 # エラーがあるページだけ表示
@@ -144,4 +150,14 @@ node dist/index.js https://example.com 2>/dev/null | jq -s 'group_by(.depth) | m
 
 # リンク数が多い順に上位 5 件
 node dist/index.js https://example.com 2>/dev/null | jq -s 'sort_by(-(.links | length)) | .[0:5] | .[] | {url, links: (.links | length)}'
+```
+
+## CSV を使った活用例
+
+```bash
+# CSV で保存して Excel / スプレッドシートで開く
+node dist/index.js https://example.com --format csv --output-dir ./output
+
+# linkCount が多い順に表示（mlr コマンド使用）
+node dist/index.js https://example.com --format csv 2>/dev/null | mlr --csv sort -nr linkCount head -n 10
 ```
