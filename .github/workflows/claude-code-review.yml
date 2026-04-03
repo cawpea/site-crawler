@@ -21,8 +21,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      pull-requests: read
-      issues: read
+      pull-requests: write
+      issues: write
       id-token: write
 
     steps:
@@ -36,9 +36,31 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          plugin_marketplaces: 'https://github.com/anthropics/claude-code.git'
-          plugins: 'code-review@claude-code-plugins'
-          prompt: '/code-review:code-review ${{ github.repository }}/pull/${{ github.event.pull_request.number }}'
-          # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
-          # or https://code.claude.com/docs/en/cli-reference for available options
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          prompt: |
+            このPRの変更内容をレビューし、以下の観点で分析結果をまとめてください：
+            - バグや論理的な問題
+            - セキュリティ上の懸念
+            - パフォーマンスの問題
+            - コードの品質・可読性
+            - ベストプラクティスへの準拠
 
+            レビューが完了したら、以下の手順でPRにコメントを投稿してください：
+            1. レビュー内容を review-output.md というファイルに保存する（Write ツールを使用）
+            2. 以下のコマンドで投稿する：
+               gh pr comment ${{ github.event.pull_request.number }} --repo ${{ github.repository }} --body-file review-output.md
+          settings: |
+            {
+              "permissions": {
+                "allow": [
+                  "Write",
+                  "Bash(gh pr comment*)",
+                  "Bash(gh pr diff*)",
+                  "Bash(gh pr view*)",
+                  "Read",
+                  "Glob",
+                  "Grep"
+                ]
+              }
+            }
+          # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
