@@ -25,6 +25,8 @@ program
   .option('--dedupe-content', 'Skip pages with duplicate HTML content (SHA-256 hash comparison)', false)
   .option('--ignore-ssl-errors', 'Skip TLS certificate verification (useful for sites with untrusted certs)', false)
   .option('--sitemap-only', 'sitemap.xml に記載されたURLのみをクロールする（リンクを辿らない）', false)
+  .option('--html-only', 'Skip pages that return non-HTML content (e.g. JSON, XML APIs)', false)
+  .option('--strict-domain', 'Only crawl URLs with the exact same hostname as the start URL (excludes subdomains)', false)
   .action(async (url: string, opts) => {
     const format = opts.format as string;
     if (format !== 'json' && format !== 'ndjson' && format !== 'csv') {
@@ -49,6 +51,8 @@ program
       outputDir: (opts.outputDir as string | undefined) ?? null,
       dedupeContent: opts.dedupeContent as boolean,
       sitemapOnly: opts.sitemapOnly as boolean,
+      htmlOnly: opts.htmlOnly as boolean,
+      strictDomain: opts.strictDomain as boolean,
     };
 
     let fetcher: IFetcher;

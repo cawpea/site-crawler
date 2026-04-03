@@ -83,6 +83,14 @@ export function getRegisteredDomain(hostname: string): string | null {
   return getDomain(hostname) ?? null;
 }
 
+export function isSameHost(targetUrl: string, seedUrl: string): boolean {
+  try {
+    return new URL(targetUrl).hostname === new URL(seedUrl).hostname;
+  } catch {
+    return false;
+  }
+}
+
 export function isSameDomain(targetUrl: string, seedUrl: string): boolean {
   try {
     const targetHostname = new URL(targetUrl).hostname;

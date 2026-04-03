@@ -4,7 +4,7 @@ import { writeFile, rename, readFile, mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import pLimit from 'p-limit';
 import type { CrawlerOptions, IFetcher, PageResult, QueueEntry, CheckpointData } from './types.js';
-import { createUrlNormalizer, isSameDomain, isNonHtmlUrl } from './urlUtils.js';
+import { createUrlNormalizer, isSameDomain, isSameHost, isNonHtmlUrl } from './urlUtils.js';
 import { parseHtml } from './parser.js';
 import { createRobotsChecker } from './robotsChecker.js';
 import { fetchSitemapUrls } from './sitemapFetcher.js';
@@ -195,6 +195,11 @@ export class Crawler {
     let title: string | null = null;
     let metaDescription: string | null = null;
 
+    if (!fetchResult.html && this.options.htmlOnly) {
+      process.stderr.write(`[html-only] Skipping non-HTML: ${fetchResult.url}\n`);
+      return;
+    }
+
     if (fetchResult.html) {
       if (this.options.dedupeContent) {
         const hash = createHash('sha256').update(fetchResult.html).digest('hex');
@@ -213,7 +218,10 @@ export class Crawler {
       // Enqueue new links (sitemapOnly モードではリンクを辿らない)
       if (!this.shuttingDown && !this.options.sitemapOnly) {
         for (const link of links) {
-          if (!isSameDomain(link, this.options.startUrl)) continue;
+          const inScope = this.options.strictDomain
+            ? isSameHost(link, this.options.startUrl)
+            : isSameDomain(link, this.options.startUrl);
+          if (!inScope) continue;
           if (isNonHtmlUrl(link)) continue;
           if (this.options.depth !== null && entry.depth + 1 > this.options.depth) continue;
           this.tryEnqueue(link, entry.depth + 1); // visited check is inside tryEnqueue

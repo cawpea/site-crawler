@@ -32,6 +32,8 @@ export interface CrawlerOptions {
   outputDir: string | null;
   dedupeContent: boolean;
   sitemapOnly: boolean;
+  htmlOnly: boolean;
+  strictDomain: boolean;
 }
 
 export interface FetchResult {
