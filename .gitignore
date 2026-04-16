@@ -4,3 +4,5 @@ output/
 *.tmp
 *.ndjson
 *.json.tmp
+checkpoint.json
+settings.local.json
